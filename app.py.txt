@@ -1,0 +1,40 @@
+import streamlit as st
+
+# Sayfa ayarları (Mobil cihazlarda daha iyi görünmesi için geniş ekran modu)
+st.set_page_config(page_title="Sineklik Hesaplayıcı", page_icon="🦟", layout="centered")
+
+st.title("🦟 Sineklik Kesim Ölçüsü Hesaplayıcı")
+st.write("Lütfen sineklik ölçülerini santimetre (cm) cinsinden giriniz.")
+
+st.sidebar.header("Ölçü Girişi")
+en = st.sidebar.number_input("En (cm):", min_value=0.0, value=60.0, step=1.0)
+boy = st.sidebar.number_input("Boy (cm):", min_value=0.0, value=120.0, step=1.0)
+
+# Butona basıldığında durumu hafızada tutmak için kontrol
+if "hesaplandi" not in st.session_state:
+    st.session_state.hesaplandi = False
+
+if st.sidebar.button("Hesapla"):
+    st.session_state.hesaplandi = True
+    st.session_state.yatay_kasa = en - 4.0
+    st.session_state.dikey_kasa = boy - 7.8
+    st.session_state.kanat = boy - 8.5
+    st.session_state.tul_dikey = boy - 4.5
+    st.session_state.tepe_sayisi = round((en * 25) / 60)
+    st.session_state.eski_en = en
+    st.session_state.eski_boy = boy
+
+# Eğer hesaplama yapıldıysa sonuçları ekranda göster
+if st.session_state.hesaplandi:
+    st.subheader(f"📊 {st.session_state.eski_en} x {st.session_state.eski_boy} için Kesim Ölçüleri")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric(label="Yatay Kasa", value=f"{st.session_state.yatay_kasa:.1f} cm")
+        st.metric(label="Dikey Kasa", value=f"{st.session_state.dikey_kasa:.1f} cm")
+        st.metric(label="Kanat", value=f"{st.session_state.kanat:.1f} cm")
+    with col2:
+        st.metric(label="Tül Dikey (Boy)", value=f"{st.session_state.tul_dikey:.1f} cm")
+        st.metric(label="Tül Tepe Sayısı", value=f"{st.session_state.tepe_sayisi} Adet")
+
+    st.success("Hesaplama tamamlandı!")

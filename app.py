@@ -103,4 +103,40 @@ if st.session_state.siparisler:
     
     # --- DİNAMİK YENİDEN HESAPLAMA MANTIĞI ---
     if not editted_df.equals(df):
-        editted_df =
+        editted_df = editted_df.dropna(subset=["En (cm)", "Boy (cm)", "Adet"])
+        
+        # Formülleri yeni değerlere göre baştan hesapla
+        editted_df["Yatay Kasa (cm)"] = (editted_df["En (cm)"] - 4.0).round(1)
+        editted_df["Dikey Kasa (cm)"] = (editted_df["Boy (cm)"] - 7.8).round(1)
+        editted_df["Kanat (cm)"] = (editted_df["Boy (cm)"] - 8.5).round(1)
+        editted_df["Tül Dikey (cm)"] = (editted_df["Boy (cm)"] - 4.5).round(1)
+        editted_df["Tül Tepe (Adet)"] = ((editted_df["En (cm)"] * 25) / 60).round().astype(int)
+        editted_df["Maliyet"] = (((editted_df["En (cm)"] + editted_df["Boy (cm)"]) * st.session_state.fiyat_carpani / 100.0) * editted_df["Adet"]).round(2)
+        
+        # Tik durumları dahil tüm listeyi hafızaya geri kaydet
+        st.session_state.siparisler = editted_df.to_dict(orient="records")
+        st.rerun()
+
+    # Listeyi Temizleme Butonu
+    if st.button("🗑️ Tüm Listeyi Temizle"):
+        st.session_state.siparisler = []
+        st.rerun()
+        
+    st.markdown("---")
+    st.subheader("📈 Toplam Analiz")
+    
+    # Toplam Özet Hesaplamaları
+    toplam_adet = int(editted_df["Adet"].sum())
+    genel_toplam_maliyet = editted_df["Maliyet"].sum()
+    
+    # Özet Kartları
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric(label="Toplam Sineklik Adedi", value=f"{toplam_adet} Adet")
+    with col2:
+        st.metric(label="Genel Toplam Tutar", value=f"{genel_toplam_maliyet:,.2f} TL")
+    
+    st.caption(f"Hesaplamada kullanılan güncel çarpan: {st.session_state.fiyat_carpani} TL | Kızılırmak Plise Modülü")
+
+else:
+    st.info("Henüz listeye eklenmiş bir sipariş bulunmuyor. Sol taraftaki menüyü kullanarak ölçü girebilirsiniz.")

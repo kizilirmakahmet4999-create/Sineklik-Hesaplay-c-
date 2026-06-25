@@ -7,7 +7,7 @@ st.set_page_config(page_title="Kızılırmak Plise - Sineklik Hesaplayıcı", pa
 # Ana Başlık ve Marka Belirteci
 st.title("🏭 Kızılırmak Plise")
 st.subheader("🦟 Sineklik Kesim Ölçüsü & Maliyet Hesaplayıcı")
-st.write("Ölçüleri girip listeye ekleyebilir, tablo üzerinde çift tıklayarak verileri **düzenleyebilir** veya satırları **silebilirsiniz**.")
+st.write("Ölçüleri girip listeye ekleyebilir, tablo üzerinde çift tıklayarak verileri **düzenleyebilir**, satırlara **tik atabilir** veya silebilirsiniz.")
 
 # Hafıza (Session State) Tanımlamaları
 if "siparisler" not in st.session_state:
@@ -51,10 +51,13 @@ if st.sidebar.button("📥 Listeye Ekle"):
     kanat = boy - 8.5
     tul_dikey = boy - 4.5
     tepe_sayisi = round((en * 25) / 60)
-    toplam_maliyet = (en + boy) * st.session_state.fiyat_carpani * adet
+    
+    # Düzeltilen Maliyet Formülü
+    toplam_maliyet = ((en + boy) * st.session_state.fiyat_carpani / 100.0) * adet
 
-    # Veriyi sözlük yapısında hafızaya ekleme
+    # Veriyi sözlük yapısında hafızaya ekleme (Durum sütunu eklendi)
     yeni_siparis = {
+        "Tamamlandı": False,  # İlk eklendiğinde tiksiz (False) başlar
         "Konum/Ad": pencere_adi,
         "En (cm)": en,
         "Boy (cm)": boy,
@@ -75,8 +78,12 @@ if st.session_state.siparisler:
     # Siparişleri Pandas DataFrame'e çeviriyoruz
     df = pd.DataFrame(st.session_state.siparisler)
     
+    # Sütun sırasını ayarlama ("Tamamlandı" sütununu en başa aldık)
+    sutun_sirasi = ["Tamamlandı"] + [col for col in df.columns if col != "Tamamlandı"]
+    df = df[sutun_sirasi]
+    
     st.subheader("📊 Kızılırmak Plise Sipariş ve Kesim Listesi")
-    st.info("💡 Tablodaki En, Boy veya Adet hücrelerine çift tıklayarak ölçüleri değiştirebilirsiniz. Kesim ve maliyetler otomatik güncellenir. Satır silmek için solundaki kutuyu seçip klavyeden 'Delete' tuşuna basabilirsiniz.")
+    st.info("💡 Üretimi biten sinekliklerin yanındaki **'Tamamlandı'** kutusuna tıklayarak tik atabilirsiniz. Ölçü değiştirmek için hücreye çift tıklayın.")
     
     # st.data_editor kullanarak tabloyu Excel gibi yapıyoruz
     editted_df = st.data_editor(
@@ -85,46 +92,15 @@ if st.session_state.siparisler:
         num_rows="dynamic", 
         disabled=["Yatay Kasa (cm)", "Dikey Kasa (cm)", "Kanat (cm)", "Tül Dikey (cm)", "Tül Tepe (Adet)", "Maliyet"], 
         column_config={
+            "Tamamlandı": st.column_config.CheckboxColumn(
+                "Tamamlandı",
+                help="Üretimi veya montajı bitenleri işaretleyin",
+                default=False,
+            ),
             "Maliyet": st.column_config.NumberColumn("Maliyet", format="%.2f TL")
         }
     )
     
     # --- DİNAMİK YENİDEN HESAPLAMA MANTIĞI ---
     if not editted_df.equals(df):
-        editted_df = editted_df.dropna(subset=["En (cm)", "Boy (cm)", "Adet"])
-        
-        # Formülleri yeni değerlere göre baştan hesapla
-        editted_df["Yatay Kasa (cm)"] = (editted_df["En (cm)"] - 4.0).round(1)
-        editted_df["Dikey Kasa (cm)"] = (editted_df["Boy (cm)"] - 7.8).round(1)
-        editted_df["Kanat (cm)"] = (editted_df["Boy (cm)"] - 8.5).round(1)
-        editted_df["Tül Dikey (cm)"] = (editted_df["Boy (cm)"] - 4.5).round(1)
-        editted_df["Tül Tepe (Adet)"] = ((editted_df["En (cm)"] * 25) / 60).round().astype(int)
-        editted_df["Maliyet"] = ((editted_df["En (cm)"] + editted_df["Boy (cm)"]) * st.session_state.fiyat_carpani * editted_df["Adet"]).round(2)
-        
-        st.session_state.siparisler = editted_df.to_dict(orient="records")
-        st.rerun()
-
-    # Listeyi Temizleme Butonu
-    if st.button("🗑️ Tüm Listeyi Temizle"):
-        st.session_state.siparisler = []
-        st.rerun()
-        
-    st.markdown("---")
-    st.subheader("📈 Toplam Analiz")
-    
-    # Toplam Özet Hesaplamaları
-    toplam_adet = int(editted_df["Adet"].sum())
-    genel_toplam_maliyet = editted_df["Maliyet"].sum()
-    
-    # Özet Kartları
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric(label="Toplam Sineklik Adedi", value=f"{toplam_adet} Adet")
-    with col2:
-        st.metric(label="Genel Toplam Tutar", value=f"{genel_toplam_maliyet:,.2f} TL")
-    
-    # Yarım kalan ve hataya sebep olan satırın düzeltilmiş hali:
-    st.caption(f"Hesaplamada kullanılan güncel çarpan: {st.session_state.fiyat_carpani} TL | Kızılırmak Plise Modülü")
-
-else:
-    st.info("Henüz listeye eklenmiş bir sipariş bulunmuyor. Sol taraftaki menüyü kullanarak ölçü girebilirsiniz.")
+        editted_df =

@@ -4,7 +4,7 @@ import pandas as pd
 # Sayfa ayarları
 st.set_page_config(page_title="Gelişmiş Sineklik Hesaplayıcı", page_icon="🦟", layout="wide")
 
-st.title("🦟 Sineklik Kesim Ölçüsü & Maliyet Hesaplayıcı")
+st.title("🦟 Kızılırmak Plise Sineklik Kesim Ölçüsü & Maliyet Hesaplayıcı")
 st.write("Ölçüleri girip listeye ekleyerek toplu sipariş ve maliyet analizi oluşturabilirsiniz.")
 
 # Hafıza (Session State) Tanımlamaları

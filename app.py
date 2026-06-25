@@ -82,8 +82,8 @@ if st.session_state.siparisler:
     editted_df = st.data_editor(
         df,
         use_container_width=True,
-        num_rows="dynamic", # Satır silmeye izin verir
-        disabled=["Yatay Kasa (cm)", "Dikey Kasa (cm)", "Kanat (cm)", "Tül Dikey (cm)", "Tül Tepe (Adet)", "Maliyet"], # Formüllü alanların elle değiştirilmesini engeller
+        num_rows="dynamic", 
+        disabled=["Yatay Kasa (cm)", "Dikey Kasa (cm)", "Kanat (cm)", "Tül Dikey (cm)", "Tül Tepe (Adet)", "Maliyet"], 
         column_config={
             "Maliyet": st.column_config.NumberColumn("Maliyet", format="%.2f TL")
         }
@@ -123,4 +123,8 @@ if st.session_state.siparisler:
     with col2:
         st.metric(label="Genel Toplam Tutar", value=f"{genel_toplam_maliyet:,.2f} TL")
     
-    st.caption(f"Hesaplamada kullanılan güncel çarpan: {st
+    # Yarım kalan ve hataya sebep olan satırın düzeltilmiş hali:
+    st.caption(f"Hesaplamada kullanılan güncel çarpan: {st.session_state.fiyat_carpani} TL | Kızılırmak Plise Modülü")
+
+else:
+    st.info("Henüz listeye eklenmiş bir sipariş bulunmuyor. Sol taraftaki menüyü kullanarak ölçü girebilirsiniz.")

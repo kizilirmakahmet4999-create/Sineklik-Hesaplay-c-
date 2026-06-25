@@ -1,11 +1,13 @@
 import streamlit as st
 import pandas as pd
 
-# Sayfa ayarları
-st.set_page_config(page_title="Gelişmiş Sineklik Hesaplayıcı", page_icon="🦟", layout="wide")
+# Sayfa ayarları (Sekme başlığı Kızılırmak Plise olarak güncellendi)
+st.set_page_config(page_title="Kızılırmak Plise - Sineklik Hesaplayıcı", page_icon="🦟", layout="wide")
 
-st.title("🦟 Kızılırmak Plise Sineklik Kesim Ölçüsü & Maliyet Hesaplayıcı")
-st.write("Ölçüleri girip listeye ekleyerek toplu sipariş ve maliyet analizi oluşturabilirsiniz.")
+# Ana Başlık ve Marka Belirteci
+st.title("🏭 Kızılırmak Plise")
+st.subheader("🦟 Sineklik Kesim Ölçüsü & Maliyet Hesaplayıcı")
+st.write("Ölçüleri girip listeye ekleyebilir, tablo üzerinde çift tıklayarak verileri **düzenleyebilir** veya satırları **silebilirsiniz**.")
 
 # Hafıza (Session State) Tanımlamaları
 if "siparisler" not in st.session_state:
@@ -18,7 +20,6 @@ if "fiyat_carpani" not in st.session_state:
 # --- SIDEBAR: MALİYET ÇARPANI AYARI ---
 st.sidebar.header("💰 Fiyat Ayarı")
 
-# Onar onar artırma/azaltma butonları ve sayı girişi
 col_eksi, col_arti = st.sidebar.columns(2)
 with col_eksi:
     if st.button("➖ 10 Azalt"):
@@ -27,7 +28,6 @@ with col_arti:
     if st.button("➕ 10 Artır"):
         st.session_state.fiyat_carpani += 10
 
-# Elle de değiştirilebilen giriş kutusu
 st.session_state.fiyat_carpani = st.sidebar.number_input(
     "Maliyet Çarpanı:", 
     min_value=0.0, 
@@ -45,16 +45,13 @@ adet = st.sidebar.number_input("Adet:", min_value=1, value=1, step=1)
 
 # Listeye Ekleme Butonu ve Hesaplama Mantığı
 if st.sidebar.button("📥 Listeye Ekle"):
-    # Kesim Formülü Hesaplamaları
+    # Formül hesaplamaları
     yatay_kasa = en - 4.0
     dikey_kasa = boy - 7.8
     kanat = boy - 8.5
     tul_dikey = boy - 4.5
     tepe_sayisi = round((en * 25) / 60)
-    
-    # Dinamik Maliyet Formülü: (En + Boy) * Belirlenen Çarpan * Adet
-    tekil_maliyet = (en + boy) * st.session_state.fiyat_carpani
-    toplam_maliyet = tekil_maliyet * adet
+    toplam_maliyet = (en + boy) * st.session_state.fiyat_carpani * adet
 
     # Veriyi sözlük yapısında hafızaya ekleme
     yeni_siparis = {
@@ -67,22 +64,48 @@ if st.sidebar.button("📥 Listeye Ekle"):
         "Kanat (cm)": round(kanat, 1),
         "Tül Dikey (cm)": round(tul_dikey, 1),
         "Tül Tepe (Adet)": tepe_sayisi,
-        "Maliyet (TL)": round(toplam_maliyet, 2)
+        "Maliyet": round(toplam_maliyet, 2)
     }
     
     st.session_state.siparisler.append(yeni_siparis)
     st.toast(f"{pencere_adi} başarıyla listeye eklendi!", icon="✅")
 
-# --- ANA EKRAN: SONUÇLAR VE TABLO ---
+# --- ANA EKRAN: SONUÇLAR VE DÜZENLENEBİLİR TABLO ---
 if st.session_state.siparisler:
     # Siparişleri Pandas DataFrame'e çeviriyoruz
     df = pd.DataFrame(st.session_state.siparisler)
     
-    st.subheader("📊 Sipariş ve Kesim Listesi")
-    st.dataframe(df, use_container_width=True)
+    st.subheader("📊 Kızılırmak Plise Sipariş ve Kesim Listesi")
+    st.info("💡 Tablodaki En, Boy veya Adet hücrelerine çift tıklayarak ölçüleri değiştirebilirsiniz. Kesim ve maliyetler otomatik güncellenir. Satır silmek için solundaki kutuyu seçip klavyeden 'Delete' tuşuna basabilirsiniz.")
     
+    # st.data_editor kullanarak tabloyu Excel gibi yapıyoruz
+    editted_df = st.data_editor(
+        df,
+        use_container_width=True,
+        num_rows="dynamic", # Satır silmeye izin verir
+        disabled=["Yatay Kasa (cm)", "Dikey Kasa (cm)", "Kanat (cm)", "Tül Dikey (cm)", "Tül Tepe (Adet)", "Maliyet"], # Formüllü alanların elle değiştirilmesini engeller
+        column_config={
+            "Maliyet": st.column_config.NumberColumn("Maliyet", format="%.2f TL")
+        }
+    )
+    
+    # --- DİNAMİK YENİDEN HESAPLAMA MANTIĞI ---
+    if not editted_df.equals(df):
+        editted_df = editted_df.dropna(subset=["En (cm)", "Boy (cm)", "Adet"])
+        
+        # Formülleri yeni değerlere göre baştan hesapla
+        editted_df["Yatay Kasa (cm)"] = (editted_df["En (cm)"] - 4.0).round(1)
+        editted_df["Dikey Kasa (cm)"] = (editted_df["Boy (cm)"] - 7.8).round(1)
+        editted_df["Kanat (cm)"] = (editted_df["Boy (cm)"] - 8.5).round(1)
+        editted_df["Tül Dikey (cm)"] = (editted_df["Boy (cm)"] - 4.5).round(1)
+        editted_df["Tül Tepe (Adet)"] = ((editted_df["En (cm)"] * 25) / 60).round().astype(int)
+        editted_df["Maliyet"] = ((editted_df["En (cm)"] + editted_df["Boy (cm)"]) * st.session_state.fiyat_carpani * editted_df["Adet"]).round(2)
+        
+        st.session_state.siparisler = editted_df.to_dict(orient="records")
+        st.rerun()
+
     # Listeyi Temizleme Butonu
-    if st.button("🗑️ Listeyi Temizle"):
+    if st.button("🗑️ Tüm Listeyi Temizle"):
         st.session_state.siparisler = []
         st.rerun()
         
@@ -90,8 +113,8 @@ if st.session_state.siparisler:
     st.subheader("📈 Toplam Analiz")
     
     # Toplam Özet Hesaplamaları
-    toplam_adet = int(df["Adet"].sum())
-    genel_toplam_maliyet = df["Maliyet (TL)"].sum()
+    toplam_adet = int(editted_df["Adet"].sum())
+    genel_toplam_maliyet = editted_df["Maliyet"].sum()
     
     # Özet Kartları
     col1, col2 = st.columns(2)
@@ -100,7 +123,4 @@ if st.session_state.siparisler:
     with col2:
         st.metric(label="Genel Toplam Tutar", value=f"{genel_toplam_maliyet:,.2f} TL")
     
-    st.caption(f"Hesaplamada kullanılan güncel çarpan: {st.session_state.fiyat_carpani} TL")
-
-else:
-    st.info("Henüz listeye eklenmiş bir sipariş bulunmuyor. Sol taraftaki menüyü kullanarak ölçü girebilirsiniz.")
+    st.caption(f"Hesaplamada kullanılan güncel çarpan: {st
